@@ -1,24 +1,28 @@
-var express = require('express');
-var router = express.Router();
+require('dotenv').config()
+const express = require('express');
+const mongoose = require('mongoose')
+const Message = require('../models/message')
 
-const messages = [
-  {
-    text: 'Hi there!',
-    user: 'Amando',
-    added: new Date()
-  },
-  {
-    text: 'Hello World!',
-    user: 'Charles',
-    added: new Date()
-  }
-]
+const router = express.Router();
+
+// Connect to MongoDB
+const uri = process.env.MONGODB_URI
+mongoose.connect(uri)
+
+// Get messages from DB
+const getMessages = async () => {
+  const messages = await Message.find({})
+  return messages
+}
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/', async function(req, res, next) {
+  const messagesArr = await getMessages()
+  console.log(messagesArr)
+
   res.render('index', { 
     title: 'Mini Messageboard',
-    messages: messages
+    messages: messagesArr
   });
 });
 
@@ -30,14 +34,19 @@ router.get('/new', function(req, res, next) {
 })
 
 /* POST new message form */
-router.post('/new', function(req, res, next) {
+router.post('/new', async function(req, res, next) {
   const messageText = req.body.messageText
   const messageUser = req.body.messageUser
-  messages.push({
-    text: messageText,
-    user: messageUser,
-    added: new Date()
-  })
+
+  async function updateDb() {
+    const message = new Message({
+      message: messageText,
+      user: messageUser
+    })
+    await message.save()
+    console.log('user saved!')
+  }
+  await updateDb()
   res.redirect('/')
 })
 module.exports = router;
